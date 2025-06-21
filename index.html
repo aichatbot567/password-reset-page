@@ -2,415 +2,97 @@
 <html>
 <head>
     <title>Reset Password</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .success { 
-            color: #28a745; 
-            background: #d4edda;
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid #c3e6cb;
-        }
-        .error { 
-            color: #dc3545;
-            background: #f8d7da;
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid #f5c6cb;
-        }
-        .info {
-            color: #0c5460;
-            background: #d1ecf1;
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid #bee5eb;
-        }
-        .form-group { 
-            margin-bottom: 20px; 
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        input:focus {
-            outline: none;
-            border-color: #4BA1AE;
-            box-shadow: 0 0 5px rgba(75, 161, 174, 0.3);
-        }
-        button {
-            background: #4BA1AE;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }
-        button:hover {
-            background: #3a8a94;
-        }
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .hidden { 
-            display: none; 
-        }
-        .loading {
-            text-align: center;
-            padding: 20px;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #4BA1AE;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #4BA1AE;
-            text-decoration: none;
-        }
-        .back-link:hover {
-            text-decoration: underline;
-        }
+        /* Your existing styles */
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Reset Your Password</h2>
-        
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
-            <p>Validating reset link...</p>
-        </div>
-        
+        <div id="loading">Loading...</div>
         <div id="message" class="hidden"></div>
-        
         <div id="resetForm" class="hidden">
-            <div class="info">
-                <p><strong>Create a new password:</strong> Your password must be at least 8 characters long.</p>
-            </div>
-            
             <div class="form-group">
                 <label for="newPassword">New Password</label>
-                <input type="password" id="newPassword" required minlength="8" placeholder="Enter new password">
+                <input type="password" id="newPassword" required minlength="8">
             </div>
-            
             <div class="form-group">
                 <label for="confirmPassword">Confirm Password</label>
-                <input type="password" id="confirmPassword" required minlength="8" placeholder="Confirm new password">
+                <input type="password" id="confirmPassword" required minlength="8">
             </div>
-            
             <button id="submitBtn">Update Password</button>
             <div id="error" class="error hidden"></div>
         </div>
-        
-        <div id="expiredMessage" class="hidden">
-            <div class="error">
-                <h3>Reset Link Expired</h3>
-                <p>This password reset link has expired or is invalid. Password reset links are only valid for 1 hour for security reasons.</p>
-                <p>Please request a new password reset link from your app.</p>
-            </div>
-            <a href="#" class="back-link" onclick="window.close(); return false;">← Go back to app</a>
-        </div>
     </div>
 
-    <!-- Load Supabase JS -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        // Replace with your actual Supabase configuration
         const supabaseUrl = 'https://lwzbmsrhcaigmakugjlh.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3emJtc3JoY2FpZ21ha3VnamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzU0NjMsImV4cCI6MjA1MDU1MTQ2M30.BKVnV_qo0qxfTI68mYmhF3mYn-qnVe2v_JXFMuzeAnw'; // Replace with your actual anon key
         
-        // Initialize Supabase client
-        const { createClient } = supabase;
-        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const loadingDiv = document.getElementById('loading');
-            const messageDiv = document.getElementById('message');
-            const resetForm = document.getElementById('resetForm');
-            const errorDiv = document.getElementById('error');
-            const expiredMessage = document.getElementById('expiredMessage');
-            
-            // Parse URL parameters
+        document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             
-            // Debug: Log all parameters
-            console.log('Current URL:', window.location.href);
-            console.log('Search params:', window.location.search);
-            console.log('Hash params:', window.location.hash);
-            console.log('URL Params:', Object.fromEntries(urlParams));
-            console.log('Hash Params:', Object.fromEntries(hashParams));
-            
-            // Check both URL and hash for parameters (Supabase can use either)
-            const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
-            const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
-            const type = urlParams.get('type') || hashParams.get('type');
-            const error = urlParams.get('error') || hashParams.get('error');
-            const errorCode = urlParams.get('error_code') || hashParams.get('error_code');
-            const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
-            
-            // PKCE flow parameters
+            // Get code from either URL params or hash
             const code = urlParams.get('code') || hashParams.get('code');
+            const type = urlParams.get('type') || hashParams.get('type');
             
-            console.log('Extracted values:', {
-                accessToken: accessToken ? 'present' : 'missing',
-                refreshToken: refreshToken ? 'present' : 'missing',
-                type,
-                error,
-                errorCode,
-                errorDescription,
-                code: code ? 'present' : 'missing'
-            });
-
-            async function handleReset() {
+            if (type === 'recovery' && code) {
                 try {
-                    // Check for errors first
-                    if (error) {
-                        console.log('Error detected:', error, errorCode, errorDescription);
+                    // Exchange code for session
+                    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+                    
+                    if (error) throw error;
+                    
+                    // Show password form
+                    document.getElementById('message').innerHTML = '<p>Please set your new password:</p>';
+                    document.getElementById('resetForm').style.display = 'block';
+                    
+                    // Handle form submission
+                    document.getElementById('submitBtn').addEventListener('click', async () => {
+                        const newPassword = document.getElementById('newPassword').value;
+                        const confirmPassword = document.getElementById('confirmPassword').value;
                         
-                        if (errorCode === 'otp_expired' || error === 'access_denied') {
-                            showExpiredMessage();
+                        if (newPassword !== confirmPassword) {
+                            document.getElementById('error').textContent = 'Passwords do not match';
+                            document.getElementById('error').style.display = 'block';
                             return;
                         }
                         
-                        const decodedError = decodeURIComponent(errorDescription || 'Unknown error occurred');
-                        showMessage(`
-                            <div class="error">
-                                <h3>Reset Failed</h3>
-                                <p><strong>Error:</strong> ${decodedError}</p>
-                                <p>Please request a new password reset link from your app.</p>
-                            </div>
-                        `, false);
-                        return;
-                    }
-
-                    // Check if we have the required tokens
-                    if (type === 'recovery' && accessToken && refreshToken) {
-                        console.log('Setting session with tokens...');
-                        
-                        // Set session with the tokens
-                        const { data, error: authError } = await supabaseClient.auth.setSession({
-                            access_token: accessToken,
-                            refresh_token: refreshToken
-                        });
-                        
-                        if (authError) {
-                            console.error('Auth error:', authError);
+                        try {
+                            // Update password
+                            const { error: updateError } = await supabase.auth.updateUser({
+                                password: newPassword
+                            });
                             
-                            if (authError.message.includes('expired') || authError.message.includes('invalid')) {
-                                showExpiredMessage();
-                                return;
-                            }
+                            if (updateError) throw updateError;
                             
-                            throw authError;
-                        }
-                        
-                        console.log('Session set successfully:', data);
-                        
-                        // Show the reset form
-                        showMessage(`
-                            <div class="success">
-                                <h3>Link Verified!</h3>
-                                <p>Your reset link is valid. Please create a new password below.</p>
-                            </div>
-                        `, true);
-                        
-                        setupFormHandlers();
-                        
-                    } else if (type === 'recovery') {
-                        // Missing tokens
-                        showMessage(`
-                            <div class="error">
-                                <h3>Invalid Link</h3>
-                                <p>This password reset link is missing required information.</p>
-                                <p>Please request a new password reset link from your app.</p>
-                            </div>
-                        `, false);
-                    } else {
-                        // Not a recovery link - show debug info
-                        showMessage(`
-                            <div class="error">
-                                <h3>Invalid Link</h3>
-                                <p>This does not appear to be a valid password reset link.</p>
-                                <p>Please request a new password reset link from your app.</p>
-                                <details style="margin-top: 15px;">
-                                    <summary style="cursor: pointer; font-weight: bold;">Debug Information</summary>
-                                    <div style="margin-top: 10px; font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 4px;">
-                                        <p><strong>URL:</strong> ${window.location.href}</p>
-                                        <p><strong>Type:</strong> ${type || 'missing'}</p>
-                                        <p><strong>Code:</strong> ${code ? 'present' : 'missing'}</p>
-                                        <p><strong>Access Token:</strong> ${accessToken ? 'present' : 'missing'}</p>
-                                        <p><strong>Refresh Token:</strong> ${refreshToken ? 'present' : 'missing'}</p>
-                                        <p><strong>Error:</strong> ${error || 'none'}</p>
-                                    </div>
-                                </details>
-                            </div>
-                        `, false);
-                    }
-                    
-                } catch (error) {
-                    console.error('Reset error:', error);
-                    
-                    // Don't show generic error if we already handled a specific case
-                    if (!document.getElementById('message').innerHTML && document.getElementById('expiredMessage').classList.contains('hidden')) {
-                        showMessage(`
-                            <div class="error">
-                                <h3>Reset Failed</h3>
-                                <p><strong>Error:</strong> ${error.message}</p>
-                                <p>Please try requesting a new password reset link.</p>
-                                <details style="margin-top: 15px;">
-                                    <summary style="cursor: pointer; font-weight: bold;">Debug Information</summary>
-                                    <div style="margin-top: 10px; font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 4px;">
-                                        <p><strong>URL:</strong> ${window.location.href}</p>
-                                        <p><strong>Type:</strong> ${type || 'missing'}</p>
-                                        <p><strong>Code:</strong> ${code ? 'present' : 'missing'}</p>
-                                        <p><strong>Access Token:</strong> ${accessToken ? 'present' : 'missing'}</p>
-                                        <p><strong>Error:</strong> ${error.message}</p>
-                                        <p><strong>Stack:</strong> ${error.stack}</p>
-                                    </div>
-                                </details>
-                            </div>
-                        `, false);
-                    }
-                }
-            }
-
-            function showExpiredMessage() {
-                loadingDiv.classList.add('hidden');
-                expiredMessage.classList.remove('hidden');
-            }
-
-            function showMessage(html, showForm) {
-                loadingDiv.classList.add('hidden');
-                messageDiv.innerHTML = html;
-                messageDiv.classList.remove('hidden');
-                resetForm.classList.toggle('hidden', !showForm);
-            }
-
-            function setupFormHandlers() {
-                const submitBtn = document.getElementById('submitBtn');
-                const newPasswordInput = document.getElementById('newPassword');
-                const confirmPasswordInput = document.getElementById('confirmPassword');
-                
-                submitBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    await handlePasswordUpdate();
-                });
-                
-                // Allow Enter key to submit
-                [newPasswordInput, confirmPasswordInput].forEach(input => {
-                    input.addEventListener('keypress', async (e) => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            await handlePasswordUpdate();
+                            document.getElementById('message').innerHTML = `
+                                <p style="color: green;">Password updated successfully!</p>
+                                <p>You can now login with your new password.</p>
+                            `;
+                            document.getElementById('resetForm').style.display = 'none';
+                        } catch (error) {
+                            document.getElementById('error').textContent = error.message;
+                            document.getElementById('error').style.display = 'block';
                         }
                     });
-                });
-            }
-
-            async function handlePasswordUpdate() {
-                const newPassword = document.getElementById('newPassword').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-                const submitBtn = document.getElementById('submitBtn');
-                
-                // Clear previous errors
-                errorDiv.textContent = '';
-                errorDiv.classList.add('hidden');
-                
-                // Validation
-                if (!newPassword || !confirmPassword) {
-                    showError('Please fill in both password fields');
-                    return;
-                }
-                
-                if (newPassword !== confirmPassword) {
-                    showError('Passwords do not match');
-                    return;
-                }
-                
-                if (newPassword.length < 8) {
-                    showError('Password must be at least 8 characters long');
-                    return;
-                }
-                
-                // Show loading state
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Updating Password...';
-                
-                try {
-                    const { data, error: updateError } = await supabaseClient.auth.updateUser({
-                        password: newPassword
-                    });
-                    
-                    if (updateError) {
-                        console.error('Update error:', updateError);
-                        throw updateError;
-                    }
-                    
-                    console.log('Password updated successfully:', data);
-                    
-                    // Show success message
-                    showMessage(`
-                        <div class="success">
-                            <h3>Password Updated Successfully!</h3>
-                            <p>Your password has been changed. You can now close this window and log in with your new password.</p>
-                        </div>
-                        <a href="#" class="back-link" onclick="window.close(); return false;">← Close this window</a>
-                    `, false);
-                    
                 } catch (error) {
-                    console.error('Password update failed:', error);
-                    showError(`Failed to update password: ${error.message}`);
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Update Password';
+                    document.getElementById('message').innerHTML = `
+                        <p style="color: red;">Error: ${error.message}</p>
+                        <p>The password reset link may have expired or is invalid.</p>
+                    `;
                 }
+            } else {
+                document.getElementById('message').innerHTML = `
+                    <p style="color: red;">Invalid password reset link</p>
+                    <p>Please use the link sent to your email.</p>
+                `;
             }
-
-            function showError(message) {
-                errorDiv.textContent = message;
-                errorDiv.classList.remove('hidden');
-                // Scroll error into view
-                errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-
-            // Start the reset process
-            handleReset();
+            document.getElementById('loading').style.display = 'none';
         });
     </script>
 </body>
