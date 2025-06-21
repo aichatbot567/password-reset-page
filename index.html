@@ -16,6 +16,12 @@
             padding: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
         .form-group {
             margin-bottom: 20px;
         }
@@ -24,6 +30,7 @@
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            margin-bottom: 10px;
         }
         button {
             background: #4BA1AE;
@@ -33,17 +40,12 @@
             border-radius: 4px;
             cursor: pointer;
         }
-        .error {
-            color: red;
-            margin-top: 5px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Reset Your Password</h2>
         <div id="message"></div>
-        
         <div id="resetForm" style="display: none;">
             <div class="form-group">
                 <label for="newPassword">New Password</label>
@@ -65,21 +67,32 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const accessToken = urlParams.get('access_token');
-            const type = urlParams.get('type');
+            const error = urlParams.get('error');
             const messageDiv = document.getElementById('message');
             const resetForm = document.getElementById('resetForm');
-            const errorDiv = document.getElementById('error');
 
+            if (error) {
+                // Handle error case
+                const errorDescription = urlParams.get('error_description') || 'The link is invalid or has expired';
+                messageDiv.innerHTML = `
+                    <p class="error">Error: ${errorDescription}</p>
+                    <p>Please request a new password reset link from the app.</p>
+                `;
+                return;
+            }
+
+            const accessToken = urlParams.get('access_token');
+            const type = urlParams.get('type');
+            
             if (type === 'recovery' && accessToken) {
                 try {
                     // Set the session with the access token
-                    const { error } = await supabase.auth.setSession({
+                    const { error: authError } = await supabase.auth.setSession({
                         access_token: accessToken,
                         refresh_token: urlParams.get('refresh_token') || ''
                     });
                     
-                    if (error) throw error;
+                    if (authError) throw authError;
                     
                     // Show password reset form
                     messageDiv.innerHTML = '<p>Please set your new password:</p>';
@@ -89,6 +102,7 @@
                     document.getElementById('submitBtn').addEventListener('click', async () => {
                         const newPassword = document.getElementById('newPassword').value;
                         const confirmPassword = document.getElementById('confirmPassword').value;
+                        const errorDiv = document.getElementById('error');
                         
                         if (newPassword !== confirmPassword) {
                             errorDiv.textContent = 'Passwords do not match';
@@ -109,7 +123,7 @@
                             if (updateError) throw updateError;
                             
                             messageDiv.innerHTML = `
-                                <p style="color: green;">Password updated successfully!</p>
+                                <p class="success">Password updated successfully!</p>
                                 <p>You can now login with your new password.</p>
                             `;
                             resetForm.style.display = 'none';
@@ -119,13 +133,13 @@
                     });
                 } catch (error) {
                     messageDiv.innerHTML = `
-                        <p style="color: red;">Error: ${error.message}</p>
+                        <p class="error">Error: ${error.message}</p>
                         <p>The password reset link may have expired or is invalid.</p>
                     `;
                 }
             } else {
                 messageDiv.innerHTML = `
-                    <p style="color: red;">Invalid password reset link</p>
+                    <p class="error">Invalid password reset link</p>
                     <p>Please use the link sent to your email.</p>
                 `;
             }
