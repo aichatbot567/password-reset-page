@@ -1,91 +1,158 @@
-<!DOCTYPE html>
+<!DOCTYPE html>More actions
 <html>
 <head>
-    <title>Password Reset</title>
+    <title>Reset Password</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; }
-        .container { background: #f8f9fa; padding: 30px; border-radius: 8px; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; }
-        button { background: #4BA1AE; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; }
-        .error { color: red; margin-top: 10px; }
-        .success { color: green; margin-top: 10px; }
+        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; }
+        input { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 0.75rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button:hover:not(:disabled) { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .error { color: red; margin-top: 0.5rem; }
         .hidden { display: none; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>Reset Password</h2>
-        <div id="loading">Loading...</div>
-        
-        <form id="resetForm" class="hidden">
-            <input type="password" id="password" placeholder="New password" required minlength="8">
-            <input type="password" id="confirmPassword" placeholder="Confirm password" required minlength="8">
-            <button type="submit">Update Password</button>
-            <div id="error" class="error hidden"></div>
-        </form>
-        
-        <div id="success" class="success hidden">
-            Password updated successfully! You can now close this page.
-        </div>
-        
-        <div id="invalid" class="error hidden">
-            Invalid or expired reset link. Please request a new one.
+@@ -34,125 +34,135 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <!-- Primary Supabase script with fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha256-9g2i0o6jAunqGqXs+OSz7jO8iK6d/YrI9qW3G0v9oJI=" crossorigin="anonymous"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.hash.substring(1));
-            const token = urlParams.get('access_token');
-            const type = urlParams.get('type');
-            
-            const loading = document.getElementById('loading');
-            const form = document.getElementById('resetForm');
-            const success = document.getElementById('success');
-            const invalid = document.getElementById('invalid');
-            const error = document.getElementById('error');
-            
-            if (type === 'recovery' && token) {
-                loading.classList.add('hidden');
-                form.classList.remove('hidden');
-                
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    
-                    const password = document.getElementById('password').value;
-                    const confirmPassword = document.getElementById('confirmPassword').value;
-                    
-                    if (password !== confirmPassword) {
-                        error.textContent = 'Passwords do not match';
-                        error.classList.remove('hidden');
-                        return;
-                    }
-                    
+        // Check if Supabase library is loaded
+        // Fallback if primary script fails
+        if (typeof Supabase === 'undefined') {
+            console.error('Supabase library is not loaded');
+            document.getElementById('error').textContent = 'Failed to load Supabase library. Please try again later.';
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('loading').style.display = 'none';
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+            fallbackScript.onload = initializeSupabase;
+            fallbackScript.onerror = () => {
+                console.error('Failed to load Supabase library from fallback');
+                showError('Failed to load Supabase library. Please check your connection and try again.');
+                document.getElementById('loading').style.display = 'none';
+            };
+            document.head.appendChild(fallbackScript);
+        } else {
+            initializeSupabase();
+        }
+
+        function initializeSupabase() {
+            // Initialize Supabase client
+            const { createClient } = Supabase;
+            const supabaseUrl = 'https://lwzbmsrhcaigmakugjlh.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3emJtc3JoY2FpZ21ha3VnamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzU0NjMsImV4cCI6MjA1MDU1MTQ2M30.BKVnV_qo0qxfTI68mYmhF3mYn-qnVe2v_JXFMuzeAnw';
+            const supabase = createClient(supabaseUrl, supabaseKey);
+
+            document.addEventListener('DOMContentLoaded', async () => {
+                const loadingDiv = document.getElementById('loading');
+                const messageDiv = document.getElementById('message');
+                const resetForm = document.getElementById('resetForm');
+                const errorDiv = document.getElementById('error');
+                const submitBtn = document.getElementById('submitBtn');
+
+                // Parse URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const accessToken = urlParams.get('access_token');
+                const refreshToken = urlParams.get('refresh_token') || '';
+                const type = urlParams.get('type');
+                const errorParam = urlParams.get('error_description') || urlParams.get('error');
+
+                async function handleReset() {
                     try {
-                        const response = await fetch('https://lwzbmsrhcaigmakugjlh.supabase.co/auth/v1/user', {
-                            method: 'PUT',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3emJtc3JoY2FpZ21ha3VnamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwODU1ODcsImV4cCI6MjA1ODY2MTU4N30.YZznPrsmuU4o9mo4F0ixCBW_VtRdpFIysfH0Qh4XxDo',
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ password })
+                        if (errorParam) {
+                            const errorDesc = decodeURIComponent(errorParam) || 'Invalid or expired link';
+                            showMessage(`Error: ${errorDesc}`, false);
+                            return;
+                        }
+
+                        if (type !== 'recovery' || !accessToken) {
+                            throw new Error('Invalid password reset link');
+                        }
+
+                        // Set session with the token
+                        const { error: authError } = await supabase.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: refreshToken
                         });
-                        
-                        if (!response.ok) throw new Error('Failed to update password');
-                        
-                        form.classList.add('hidden');
-                        success.classList.remove('hidden');
-                    } catch (err) {
-                        error.textContent = err.message;
-                        error.classList.remove('hidden');
+
+                        if (authError) {
+                            console.error('Auth error:', authError);
+                            throw new Error(authError.message);
+                        }
+
+                        // Show the form
+                        showMessage('Please set your new password:', true);
+                        setupFormHandlers();
+                    } catch (error) {
+                        showMessage(`Error: ${error.message}`, false);
+                        console.error('Reset error:', error);
+                    } finally {
+                        loadingDiv.style.display = 'none';
                     }
-                });
-            } else {
-                loading.classList.add('hidden');
-                invalid.classList.remove('hidden');
-            }
-        });
+                }
+
+                function showMessage(message, showForm) {
+                    messageDiv.textContent = message;
+                    messageDiv.classList.remove('hidden');
+                    resetForm.classList.toggle('hidden', !showForm);
+                }
+
+                function setupFormHandlers() {
+                    submitBtn.addEventListener('click', async () => {
+                        const newPassword = document.getElementById('newPassword').value;
+                        const confirmPassword = document.getElementById('confirmPassword').value;
+
+                        errorDiv.textContent = '';
+                        errorDiv.classList.add('hidden');
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Updating...';
+
+                        try {
+                            if (newPassword !== confirmPassword) {
+                                throw new Error('Passwords do not match');
+                            }
+
+                            if (newPassword.length < 8) {
+                                throw new Error('Password must be at least 8 characters');
+                            }
+
+                            const { error: updateError } = await supabase.auth.updateUser({
+                                password: newPassword
+                            });
+
+                            if (updateError) {
+                                console.error('Update error:', updateError);
+                                throw updateError;
+                            }
+
+                            showMessage('Password updated successfully! Redirecting...', false);
+                            setTimeout(() => {
+                                window.location.href = 'https://your-app-login-page.com'; // Replace with your login page
+                            }, 2000);
+                        } catch (error) {
+                            showError(error.message);
+                        } finally {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Update Password';
+                        }
+                    });
+                }
+
+                function showError(message) {
+                    errorDiv.textContent = message;
+                    errorDiv.classList.remove('hidden');
+                }
+
+                // Start the process
+                await handleReset();
+            });
+        }
     </script>
 </body>
 </html>
