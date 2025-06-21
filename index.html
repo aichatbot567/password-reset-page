@@ -98,6 +98,9 @@
         </div>
     </div>
 
+    <!-- Load Supabase JS from CDN with integrity check -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const loadingDiv = document.getElementById('loading');
@@ -108,15 +111,26 @@
             const errorDiv = document.getElementById('error');
             const submitBtn = document.getElementById('submitBtn');
             
+            // First check if Supabase is loaded
+            if (typeof supabase === 'undefined') {
+                showError('Failed to load required resources. Please refresh the page.');
+                loadingDiv.style.color = '#dc3545';
+                return;
+            }
+
             // Parse URL parameters from both search and hash
-            const searchParams = new URLSearchParams(window.location.search);
+            const params = new URLSearchParams(window.location.search);
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             
-            const accessToken = searchParams.get('access_token') || hashParams.get('access_token');
-            const refreshToken = searchParams.get('refresh_token') || hashParams.get('refresh_token');
-            const type = searchParams.get('type') || hashParams.get('type');
-            const error = searchParams.get('error') || hashParams.get('error');
-            const errorDescription = searchParams.get('error_description') || hashParams.get('error_description');
+            // Combine both parameter sources
+            const allParams = new URLSearchParams();
+            params.forEach((value, key) => allParams.set(key, value));
+            hashParams.forEach((value, key) => allParams.set(key, value));
+            
+            const accessToken = allParams.get('access_token');
+            const type = allParams.get('type');
+            const error = allParams.get('error');
+            const errorDescription = allParams.get('error_description');
 
             try {
                 // Check for errors first
@@ -126,22 +140,20 @@
 
                 // Validate required parameters
                 if (type !== 'recovery' || !accessToken) {
-                    throw new Error('Invalid password reset link');
+                    throw new Error('Invalid password reset link. Please use the complete link from your email.');
                 }
 
                 // Initialize Supabase client
-                const { createClient } = supabase;
                 const supabaseUrl = 'https://lwzbmsrhcaigmakugjlh.supabase.co';
                 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3emJtc3JoY2FpZ21ha3VnamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwODU1ODcsImV4cCI6MjA1ODY2MTU4N30.YZznPrsmuU4o9mo4F0ixCBW_VtRdpFIysfH0Qh4XxDo';
-                const supabaseClient = createClient(supabaseUrl, supabaseKey);
+                const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-                // Set session with the token
-                const { error: authError } = await supabaseClient.auth.setSession({
-                    access_token: accessToken,
-                    refresh_token: refreshToken || ''
-                });
-
-                if (authError) throw authError;
+                // Verify the token is valid
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser(accessToken);
+                
+                if (authError || !user) {
+                    throw new Error('Invalid or expired token. Please request a new reset link.');
+                }
 
                 // Show the form
                 loadingDiv.classList.add('hidden');
@@ -172,7 +184,15 @@
                             throw new Error('Password must be at least 8 characters');
                         }
 
-                        // Update password
+                        // First set the session properly
+                        const { error: sessionError } = await supabaseClient.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: allParams.get('refresh_token') || ''
+                        });
+                        
+                        if (sessionError) throw sessionError;
+
+                        // Then update password
                         const { error: updateError } = await supabaseClient.auth.updateUser({
                             password: newPassword
                         });
@@ -186,6 +206,7 @@
                     } catch (error) {
                         errorDiv.textContent = error.message;
                         errorDiv.classList.remove('hidden');
+                        console.error('Update error:', error);
                     } finally {
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Update Password';
@@ -198,14 +219,11 @@
                 console.error('Password reset error:', error);
             }
         });
-    </script>
-    
-    <!-- Load Supabase JS with fallback -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script>
-        if (typeof supabase === 'undefined') {
-            document.getElementById('loading').textContent = 'Failed to load required resources. Please try again.';
-            document.getElementById('loading').style.color = '#dc3545';
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
         }
     </script>
 </body>
