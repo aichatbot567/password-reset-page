@@ -1,153 +1,115 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Reset Password</title>
+    <title>Password Reset</title>
     <style>
-        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
-        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; }
-        input { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
-        button { width: 100%; padding: 0.75rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        .error { color: red; margin-top: 0.5rem; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .error { color: red; }
+        .success { color: green; }
         .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Reset Your Password</h2>
+        <h2>Reset Password</h2>
         <div id="loading">Loading...</div>
         <div id="message" class="hidden"></div>
         <div id="resetForm" class="hidden">
-            <div class="form-group">
-                <label for="newPassword">New Password</label>
-                <input type="password" id="newPassword" required minlength="8">
+            <div>
+                <label>New Password:</label>
+                <input type="password" id="newPassword" minlength="8" required>
             </div>
-            <div class="form-group">
-                <label for="confirmPassword">Confirm Password</label>
-                <input type="password" id="confirmPassword" required minlength="8">
+            <div>
+                <label>Confirm Password:</label>
+                <input type="password" id="confirmPassword" minlength="8" required>
             </div>
             <button id="submitBtn">Update Password</button>
             <div id="error" class="error hidden"></div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <!-- Load Supabase first -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        // Check if Supabase is loaded
-        if (typeof Supabase === 'undefined') {
-            console.error('Supabase library is not loaded');
-            document.getElementById('error').textContent = 'Failed to load Supabase library. Please try again later.';
-            document.getElementById('error').classList.remove('hidden');
-            document.getElementById('loading').style.display = 'none';
-            return;
-        }
+        // Initialize Supabase immediately
+        const supabase = supabase.createClient(
+const supabaseUrl = 'https://lwzbmsrhcaigmakugjlh.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3emJtc3JoY2FpZ21ha3VnamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzU0NjMsImV4cCI6MjA1MDU1MTQ2M30.BKVnV_qo0qxfTI68mYmhF3mYn-qnVe2v_JXFMuzeAnw';
+        );
 
-        // Initialize Supabase client
-        const { createClient } = Supabase;
-        const supabaseUrl = 'https://lwzbmsrhcaigmakugjlh.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3emJtc3JoY2FpZ21ha3VnamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzU0NjMsImV4cCI6MjA1MDU1MTQ2M30.BKVnV_qo0qxfTI68mYmhF3mYn-qnVe2v_JXFMuzeAnw';
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = params.get('access_token');
+            const type = params.get('type');
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            const loadingDiv = document.getElementById('loading');
-            const messageDiv = document.getElementById('message');
-            const resetForm = document.getElementById('resetForm');
-            const errorDiv = document.getElementById('error');
+            console.log('Access token:', accessToken);
+            console.log('Type:', type);
 
-            // Parse URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const accessToken = urlParams.get('access_token');
-            const refreshToken = urlParams.get('refresh_token') || '';
-            const type = urlParams.get('type');
-            const errorParam = urlParams.get('error_description') || urlParams.get('error');
-
-            async function handleReset() {
+            if (type === 'recovery' && accessToken) {
                 try {
-                    if (errorParam) {
-                        const errorDesc = decodeURIComponent(errorParam) || 'Invalid or expired link';
-                        showMessage(`Error: ${errorDesc}`, false);
-                        return;
-                    }
+                    // Set the session
+                    const { error } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: params.get('refresh_token') || ''
+                    });
 
-                    if (type === 'recovery' && accessToken) {
-                        // Set session with the token
-                        const { error: authError } = await supabase.auth.setSession({
-                            access_token: accessToken,
-                            refresh_token: refreshToken
-                        });
+                    if (error) throw error;
 
-                        if (authError) {
-                            console.error('Auth error:', authError);
-                            throw new Error(authError.message);
+                    // Show form
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('resetForm').classList.remove('hidden');
+                    document.getElementById('message').textContent = 'Set your new password';
+                    document.getElementById('message').classList.remove('hidden');
+
+                    // Handle form submission
+                    document.getElementById('submitBtn').addEventListener('click', async () => {
+                        const newPassword = document.getElementById('newPassword').value;
+                        const confirmPassword = document.getElementById('confirmPassword').value;
+
+                        if (newPassword !== confirmPassword) {
+                            document.getElementById('error').textContent = 'Passwords do not match';
+                            document.getElementById('error').classList.remove('hidden');
+                            return;
                         }
 
-                        // Show the form
-                        showMessage('Please set your new password:', true);
-                        setupFormHandlers();
-                    } else {
-                        throw new Error('Invalid password reset link');
-                    }
+                        try {
+                            const { error } = await supabase.auth.updateUser({
+                                password: newPassword
+                            });
+
+                            if (error) throw error;
+
+                            document.getElementById('message').textContent = 'Password updated successfully!';
+                            document.getElementById('message').classList.add('success');
+                            document.getElementById('resetForm').classList.add('hidden');
+                        } catch (error) {
+                            document.getElementById('error').textContent = error.message;
+                            document.getElementById('error').classList.remove('hidden');
+                        }
+                    });
+
                 } catch (error) {
-                    showMessage(`Error: ${error.message}`, false);
-                    console.error('Reset error:', error);
-                } finally {
-                    loadingDiv.style.display = 'none';
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('message').textContent = 'Error: ' + error.message;
+                    document.getElementById('message').classList.remove('hidden');
+                    console.error(error);
                 }
+            } else {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('message').textContent = 'Invalid password reset link';
+                document.getElementById('message').classList.remove('hidden');
             }
-
-            function showMessage(message, showForm) {
-                messageDiv.textContent = message;
-                messageDiv.classList.remove('hidden');
-                resetForm.classList.toggle('hidden', !showForm);
-            }
-
-            function setupFormHandlers() {
-                document.getElementById('submitBtn').addEventListener('click', async () => {
-                    const newPassword = document.getElementById('newPassword').value;
-                    const confirmPassword = document.getElementById('confirmPassword').value;
-
-                    errorDiv.textContent = '';
-                    errorDiv.classList.add('hidden');
-
-                    if (newPassword !== confirmPassword) {
-                        showError('Passwords do not match');
-                        return;
-                    }
-
-                    if (newPassword.length < 8) {
-                        showError('Password must be at least 8 characters');
-                        return;
-                    }
-
-                    try {
-                        const { error: updateError } = await supabase.auth.updateUser({
-                            password: newPassword
-                        });
-
-                        if (updateError) {
-                            console.error('Update error:', updateError);
-                            throw updateError;
-                        }
-
-                        showMessage('Password updated successfully! Redirecting...', false);
-                        setTimeout(() => {
-                            window.location.href = 'https://your-app-login-page.com'; // Replace with your login page
-                        }, 2000);
-                    } catch (error) {
-                        showError(error.message);
-                    }
-                });
-            }
-
-            function showError(message) {
-                errorDiv.textContent = message;
-                errorDiv.classList.remove('hidden');
-            }
-
-            // Start the process
-            await handleReset();
         });
     </script>
 </body>
