@@ -184,13 +184,17 @@
             const errorCode = urlParams.get('error_code') || hashParams.get('error_code');
             const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
             
+            // PKCE flow parameters
+            const code = urlParams.get('code') || hashParams.get('code');
+            
             console.log('Extracted values:', {
                 accessToken: accessToken ? 'present' : 'missing',
                 refreshToken: refreshToken ? 'present' : 'missing',
                 type,
                 error,
                 errorCode,
-                errorDescription
+                errorDescription,
+                code: code ? 'present' : 'missing'
             });
 
             async function handleReset() {
@@ -269,6 +273,7 @@
                                     <div style="margin-top: 10px; font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 4px;">
                                         <p><strong>URL:</strong> ${window.location.href}</p>
                                         <p><strong>Type:</strong> ${type || 'missing'}</p>
+                                        <p><strong>Code:</strong> ${code ? 'present' : 'missing'}</p>
                                         <p><strong>Access Token:</strong> ${accessToken ? 'present' : 'missing'}</p>
                                         <p><strong>Refresh Token:</strong> ${refreshToken ? 'present' : 'missing'}</p>
                                         <p><strong>Error:</strong> ${error || 'none'}</p>
