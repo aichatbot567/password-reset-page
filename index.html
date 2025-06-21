@@ -285,13 +285,28 @@
                     
                 } catch (error) {
                     console.error('Reset error:', error);
-                    showMessage(`
-                        <div class="error">
-                            <h3>Reset Failed</h3>
-                            <p><strong>Error:</strong> ${error.message}</p>
-                            <p>Please try requesting a new password reset link.</p>
-                        </div>
-                    `, false);
+                    
+                    // Don't show generic error if we already handled a specific case
+                    if (!document.getElementById('message').innerHTML && document.getElementById('expiredMessage').classList.contains('hidden')) {
+                        showMessage(`
+                            <div class="error">
+                                <h3>Reset Failed</h3>
+                                <p><strong>Error:</strong> ${error.message}</p>
+                                <p>Please try requesting a new password reset link.</p>
+                                <details style="margin-top: 15px;">
+                                    <summary style="cursor: pointer; font-weight: bold;">Debug Information</summary>
+                                    <div style="margin-top: 10px; font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                                        <p><strong>URL:</strong> ${window.location.href}</p>
+                                        <p><strong>Type:</strong> ${type || 'missing'}</p>
+                                        <p><strong>Code:</strong> ${code ? 'present' : 'missing'}</p>
+                                        <p><strong>Access Token:</strong> ${accessToken ? 'present' : 'missing'}</p>
+                                        <p><strong>Error:</strong> ${error.message}</p>
+                                        <p><strong>Stack:</strong> ${error.stack}</p>
+                                    </div>
+                                </details>
+                            </div>
+                        `, false);
+                    }
                 }
             }
 
