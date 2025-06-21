@@ -169,6 +169,13 @@
             const urlParams = new URLSearchParams(window.location.search);
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             
+            // Debug: Log all parameters
+            console.log('Current URL:', window.location.href);
+            console.log('Search params:', window.location.search);
+            console.log('Hash params:', window.location.hash);
+            console.log('URL Params:', Object.fromEntries(urlParams));
+            console.log('Hash Params:', Object.fromEntries(hashParams));
+            
             // Check both URL and hash for parameters (Supabase can use either)
             const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
             const refreshToken = urlParams.get('refresh_token') || hashParams.get('refresh_token');
@@ -176,6 +183,15 @@
             const error = urlParams.get('error') || hashParams.get('error');
             const errorCode = urlParams.get('error_code') || hashParams.get('error_code');
             const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
+            
+            console.log('Extracted values:', {
+                accessToken: accessToken ? 'present' : 'missing',
+                refreshToken: refreshToken ? 'present' : 'missing',
+                type,
+                error,
+                errorCode,
+                errorDescription
+            });
 
             async function handleReset() {
                 try {
@@ -242,12 +258,22 @@
                             </div>
                         `, false);
                     } else {
-                        // Not a recovery link
+                        // Not a recovery link - show debug info
                         showMessage(`
                             <div class="error">
                                 <h3>Invalid Link</h3>
                                 <p>This does not appear to be a valid password reset link.</p>
                                 <p>Please request a new password reset link from your app.</p>
+                                <details style="margin-top: 15px;">
+                                    <summary style="cursor: pointer; font-weight: bold;">Debug Information</summary>
+                                    <div style="margin-top: 10px; font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                                        <p><strong>URL:</strong> ${window.location.href}</p>
+                                        <p><strong>Type:</strong> ${type || 'missing'}</p>
+                                        <p><strong>Access Token:</strong> ${accessToken ? 'present' : 'missing'}</p>
+                                        <p><strong>Refresh Token:</strong> ${refreshToken ? 'present' : 'missing'}</p>
+                                        <p><strong>Error:</strong> ${error || 'none'}</p>
+                                    </div>
+                                </details>
                             </div>
                         `, false);
                     }
