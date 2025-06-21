@@ -1,49 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Password Reset</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .container {
-            background: #f9f9f9;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .btn {
-            display: inline-block;
-            background: #4BA1AE;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            text-decoration: none;
-            margin-top: 20px;
-        }
-    </style>
+  <title>Reset Password</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
-    <div class="container">
-        <h2>Reset Password</h2>
-        <p>Please return to the app to complete password reset.</p>
-        <a href="yourapp://reset-password" class="btn">Open App</a>
-    </div>
+  <h2>Reset your password</h2>
+  <form id="reset-form">
+    <input type="password" id="new-password" placeholder="New Password" required />
+    <button type="submit">Reset Password</button>
+  </form>
+  <div id="message"></div>
+  <script>
+    const supabase = supabase.createClient('https://lwzbmsrhcaigmakugjlh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3emJtc3JoY2FpZ21ha3VnamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwODU1ODcsImV4cCI6MjA1ODY2MTU4N30.YZznPrsmuU4o9mo4F0ixCBW_VtRdpFIysfH0Qh4XxDo');
 
-    <script>
-        // Extract token from URL and pass to app
-        const urlParams = new URLSearchParams(window.location.search);
-        const accessToken = urlParams.get('access_token');
-        const refreshToken = urlParams.get('refresh_token');
-        
-        if (accessToken) {
-            // Store tokens temporarily
-            localStorage.setItem('reset_access_token', accessToken);
-            localStorage.setItem('reset_refresh_token', refreshToken || '');
-        }
-    </script>
+    document.getElementById('reset-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const params = new URLSearchParams(window.location.hash.substr(1));
+      const access_token = params.get('access_token');
+      if (!access_token) {
+        document.getElementById('message').textContent = 'Invalid or expired reset link.';
+        return;
+      }
+      await supabase.auth.setSession({ access_token, refresh_token: params.get('refresh_token') });
+      const { error } = await supabase.auth.updateUser({ password: document.getElementById('new-password').value });
+      if (error) {
+        document.getElementById('message').textContent = error.message;
+      } else {
+        document.getElementById('message').textContent = 'Password updated! You can now log in.';
+      }
+    };
+  </script>
 </body>
 </html>
