@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Password</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div id="reset-form" style="max-width: 400px; margin: 50px auto; padding: 20px;">
+        <h2>Reset Your Password</h2>
+        <form id="passwordForm">
+            <input type="password" id="newPassword" placeholder="New Password" required style="width: 100%; padding: 10px; margin: 10px 0;">
+            <input type="password" id="confirmPassword" placeholder="Confirm Password" required style="width: 100%; padding: 10px; margin: 10px 0;">
+            <button type="submit" style="width: 100%; padding: 10px; background: #4BA1AE; color: white; border: none; cursor: pointer;">
+                Update Password
+            </button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const { createClient } = supabase;
+        const supabaseClient = createClient(
+            'https://lwzbmsrhcaigmakugjlh.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3emJtc3JoY2FpZ21ha3VnamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwODU1ODcsImV4cCI6MjA1ODY2MTU4N30.YZznPrsmuU4o9mo4F0ixCBW_VtRdpFIysfH0Qh4XxDo'
+        );
+
+        // Get the hash fragment from URL
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+            // Set the session
+            supabaseClient.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+            });
+        }
+
+        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const messageDiv = document.getElementById('message');
+
+            if (newPassword !== confirmPassword) {
+                messageDiv.innerHTML = '<p style="color: red;">Passwords do not match!</p>';
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                messageDiv.innerHTML = '<p style="color: red;">Password must be at least 6 characters!</p>';
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient.auth.updateUser({
+                    password: newPassword
+                });
+
+                if (error) {
+                    messageDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                } else {
+                    messageDiv.innerHTML = '<p style="color: green;">Password updated successfully! You can now close this window.</p>';
+                    // Optionally redirect to your app
+                    setTimeout(() => {
+                        window.location.href = 'yourapp://password-reset-success';
+                    }, 2000);
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
