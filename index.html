@@ -33,8 +33,17 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
     <script>
+        // Check if Supabase is loaded
+        if (typeof Supabase === 'undefined') {
+            console.error('Supabase library is not loaded');
+            document.getElementById('error').textContent = 'Failed to load Supabase library. Please try again later.';
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('loading').style.display = 'none';
+            return;
+        }
+
         // Initialize Supabase client
         const { createClient } = Supabase;
         const supabaseUrl = 'https://lwzbmsrhcaigmakugjlh.supabase.co';
