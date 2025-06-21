@@ -2,13 +2,13 @@
 <html>
 <head>
     <title>Reset Password</title>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
+            line-height: 1.6;
         }
         .container {
             background: #f9f9f9;
@@ -16,15 +16,9 @@
             padding: 30px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .success {
-            color: green;
-        }
-        .error {
-            color: red;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
+        .success { color: green; }
+        .error { color: red; }
+        .form-group { margin-bottom: 20px; }
         input {
             width: 100%;
             padding: 10px;
@@ -40,15 +34,17 @@
             border-radius: 4px;
             cursor: pointer;
         }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Reset Your Password</h2>
-        <div id="message"></div>
-        <div id="resetForm" style="display: none;">
+        <div id="loading">Loading...</div>
+        <div id="message" class="hidden"></div>
+        <div id="resetForm" class="hidden">
             <div class="form-group">
-                <label for="newPassword">New Password</label>
+                <label for="newPassword">New Password (min 8 characters)</label>
                 <input type="password" id="newPassword" required minlength="8">
             </div>
             <div class="form-group">
@@ -56,93 +52,109 @@
                 <input type="password" id="confirmPassword" required minlength="8">
             </div>
             <button id="submitBtn">Update Password</button>
-            <div id="error" class="error"></div>
+            <div id="error" class="error hidden"></div>
         </div>
     </div>
 
+    <!-- Load Supabase JS first -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
+        // Initialize Supabase client first
         const supabaseUrl = 'https://lwzbmsrhcaigmakugjlh.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3emJtc3JoY2FpZ21ha3VnamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwODU1ODcsImV4cCI6MjA1ODY2MTU4N30.YZznPrsmuU4o9mo4F0ixCBW_VtRdpFIysfH0Qh4XxDo';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3emJtc3JoY2FpZ21ha3VnamxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwODU1ODcsImV4cCI6MjA1ODY2MTU4N30.YZznPrsmuU4o9mo4F0ixCBW_VtRdpFIysfH0Qh4XxDo'; // Replace with your actual anon key
         const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const error = urlParams.get('error');
+        // Now that supabase is initialized, we can use it
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingDiv = document.getElementById('loading');
             const messageDiv = document.getElementById('message');
             const resetForm = document.getElementById('resetForm');
-
-            if (error) {
-                // Handle error case
-                const errorDescription = urlParams.get('error_description') || 'The link is invalid or has expired';
-                messageDiv.innerHTML = `
-                    <p class="error">Error: ${errorDescription}</p>
-                    <p>Please request a new password reset link from the app.</p>
-                `;
-                return;
-            }
-
+            const errorDiv = document.getElementById('error');
+            
+            // Parse URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
             const accessToken = urlParams.get('access_token');
             const type = urlParams.get('type');
-            
-            if (type === 'recovery' && accessToken) {
+            const error = urlParams.get('error');
+
+            async function handleReset() {
                 try {
-                    // Set the session with the access token
-                    const { error: authError } = await supabase.auth.setSession({
-                        access_token: accessToken,
-                        refresh_token: urlParams.get('refresh_token') || ''
-                    });
-                    
-                    if (authError) throw authError;
-                    
-                    // Show password reset form
-                    messageDiv.innerHTML = '<p>Please set your new password:</p>';
-                    resetForm.style.display = 'block';
-                    
-                    // Handle form submission
-                    document.getElementById('submitBtn').addEventListener('click', async () => {
-                        const newPassword = document.getElementById('newPassword').value;
-                        const confirmPassword = document.getElementById('confirmPassword').value;
-                        const errorDiv = document.getElementById('error');
+                    if (error) {
+                        const errorDesc = urlParams.get('error_description') || 'Invalid or expired link';
+                        showMessage(`<p class="error"><strong>Error:</strong> ${errorDesc}</p>`, false);
+                        return;
+                    }
+
+                    if (type === 'recovery' && accessToken) {
+                        // Set session with the token
+                        const { error: authError } = await supabase.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: urlParams.get('refresh_token') || ''
+                        });
                         
-                        if (newPassword !== confirmPassword) {
-                            errorDiv.textContent = 'Passwords do not match';
-                            return;
-                        }
+                        if (authError) throw authError;
                         
-                        if (newPassword.length < 8) {
-                            errorDiv.textContent = 'Password must be at least 8 characters';
-                            return;
-                        }
-                        
-                        try {
-                            // Update password
-                            const { error: updateError } = await supabase.auth.updateUser({
-                                password: newPassword
-                            });
-                            
-                            if (updateError) throw updateError;
-                            
-                            messageDiv.innerHTML = `
-                                <p class="success">Password updated successfully!</p>
-                                <p>You can now login with your new password.</p>
-                            `;
-                            resetForm.style.display = 'none';
-                        } catch (error) {
-                            errorDiv.textContent = error.message;
-                        }
-                    });
+                        // Show the form
+                        showMessage('<p>Please create a new password:</p>', true);
+                        setupFormHandlers();
+                    } else {
+                        throw new Error('Invalid password reset link');
+                    }
                 } catch (error) {
-                    messageDiv.innerHTML = `
-                        <p class="error">Error: ${error.message}</p>
-                        <p>The password reset link may have expired or is invalid.</p>
-                    `;
+                    showMessage(`<p class="error"><strong>Error:</strong> ${error.message}</p>`, false);
+                    console.error('Reset error:', error);
                 }
-            } else {
-                messageDiv.innerHTML = `
-                    <p class="error">Invalid password reset link</p>
-                    <p>Please use the link sent to your email.</p>
-                `;
             }
+
+            function showMessage(html, showForm) {
+                loadingDiv.classList.add('hidden');
+                messageDiv.innerHTML = html;
+                messageDiv.classList.remove('hidden');
+                resetForm.classList.toggle('hidden', !showForm);
+            }
+
+            function setupFormHandlers() {
+                document.getElementById('submitBtn').addEventListener('click', async () => {
+                    const newPassword = document.getElementById('newPassword').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    
+                    errorDiv.textContent = '';
+                    errorDiv.classList.add('hidden');
+                    
+                    if (newPassword !== confirmPassword) {
+                        showError('Passwords do not match');
+                        return;
+                    }
+                    
+                    if (newPassword.length < 8) {
+                        showError('Password must be at least 8 characters');
+                        return;
+                    }
+                    
+                    try {
+                        const { error: updateError } = await supabase.auth.updateUser({
+                            password: newPassword
+                        });
+                        
+                        if (updateError) throw updateError;
+                        
+                        showMessage(`
+                            <p class="success">Password updated successfully!</p>
+                            <p>You can now login with your new password.</p>
+                        `, false);
+                    } catch (error) {
+                        showError(error.message);
+                    }
+                });
+            }
+
+            function showError(message) {
+                errorDiv.textContent = message;
+                errorDiv.classList.remove('hidden');
+            }
+
+            // Start the process
+            handleReset();
         });
     </script>
 </body>
