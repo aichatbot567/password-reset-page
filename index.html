@@ -9,7 +9,7 @@
         label { display: block; margin-bottom: 0.5rem; }
         input { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
         button { width: 100%; padding: 0.75rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
+        button:hover:not(:disabled) { background: #0056b3; }
         button:disabled { background: #6c757d; cursor: not-allowed; }
         .error { color: red; margin-top: 0.5rem; }
         .hidden { display: none; }
@@ -34,15 +34,25 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <!-- Primary Supabase script with fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha256-9g2i0o6jAunqGqXs+OSz7jO8iK6d/YrI9qW3G0v9oJI=" crossorigin="anonymous"></script>
     <script>
-        // Check if Supabase library is loaded
+        // Fallback if primary script fails
         if (typeof Supabase === 'undefined') {
-            console.error('Supabase library is not loaded');
-            document.getElementById('error').textContent = 'Failed to load Supabase library. Please try again later.';
-            document.getElementById('error').classList.remove('hidden');
-            document.getElementById('loading').style.display = 'none';
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+            fallbackScript.onload = initializeSupabase;
+            fallbackScript.onerror = () => {
+                console.error('Failed to load Supabase library from fallback');
+                showError('Failed to load Supabase library. Please check your connection and try again.');
+                document.getElementById('loading').style.display = 'none';
+            };
+            document.head.appendChild(fallbackScript);
         } else {
+            initializeSupabase();
+        }
+
+        function initializeSupabase() {
             // Initialize Supabase client
             const { createClient } = Supabase;
             const supabaseUrl = 'https://lwzbmsrhcaigmakugjlh.supabase.co';
